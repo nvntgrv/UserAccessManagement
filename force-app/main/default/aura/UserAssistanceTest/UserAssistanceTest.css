@@ -1,0 +1,30 @@
+.THIS .blur-background {
+    backdrop-filter: blur(3px); /* Adjust the blur radius as needed */
+    background-color: rgba(0, 0, 0, 0.5); /* Adjust the background color and opacity */
+}
+
+.THIS .label-hidden > label {
+    display: none;
+}
+
+.THIS .download-button{
+    width: 30px;
+    height: 30px;
+    border-radius: 60%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.THIS .chart-container{
+    width: 400px;
+    height: 350px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.THIS .chart-container canvas{
+    display: block;
+}

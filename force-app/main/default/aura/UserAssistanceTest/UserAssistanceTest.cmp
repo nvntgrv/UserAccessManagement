@@ -1,0 +1,450 @@
+<aura:component controller="UserAssistanceController" implements="force:appHostable,flexipage:availableForAllPageTypes,flexipage:availableForRecordHome,force:hasRecordId,forceCommunity:availableForAllPageTypes,force:lightningQuickAction" access="global">
+    <aura:handler name="init" value="{!this}" action="{!c.fetchLicenseList}"/>
+    <aura:attribute name="licenceListData" type="List" default="[]"/>
+    <aura:attribute name="homePage" type="boolean" default="true"/>
+    <aura:attribute name="columnForLicenseList" type="List" default="[{label: 'Name', fieldName: 'Name', type: 'text'},
+                                                                         {label: 'Status', fieldName: 'Status', type: 'text'},
+                                                                         {label: 'Total Licenses', fieldName: 'TotalLicenses', type: 'text'},
+                                                                         {label: 'Used Licenses	', fieldName: 'UsedLicenses', type: 'text'},
+                                                                         {label: 'Remaining Licenses	', fieldName: 'remainingLicense', type: 'text'}
+                                                                         ]"/>
+    
+    <!--		ATTRIBUTES FOR CREATING NEW USERS		-->
+    
+    <aura:attribute name="newUsersPage" type="boolean" default="false"/>
+    <aura:attribute name="FirstName" type="String"/>
+    <aura:attribute name="LastName" type="String"/>
+    <aura:attribute name="Email" type="String"/>
+    <aura:attribute name="Username" type="String"/>
+    <aura:attribute name="CommunityNickname" type="String"/>
+    <aura:attribute name="Alias" type="String"/>
+    <aura:attribute name="EmailEncodingKey" type="String" default="UTF-8"/>
+    <aura:attribute name="UserRoleId" type="String"/>
+    <aura:attribute name="ProfileId" type="String"/>
+    <aura:attribute name="IsActive" type="Boolean" default="true"/>
+    <aura:attribute name="TimeZoneSidKey" type="String"/>
+    <aura:attribute name="LocaleSidKey" type="String"/>
+    <aura:attribute name="LanguageLocaleKey" type="String"/>
+    
+    <!-- 		CLONE USER ATTRIBUTE 		-->
+    <aura:attribute name="cloneUsersPage" type="boolean" default="false"/>
+    <aura:attribute name="hasRecord" type="boolean" default="false"/>
+    <aura:attribute name="Profilename" type="String"/>
+    
+    <!--		ATTRIBUTES FOR DEACTIVATING USER		-->
+    <aura:attribute name="deactivateUsersPage" type="boolean" default="false"/>
+    <aura:attribute name="isRenderPieChart" type="boolean" default="false"/>
+    <aura:attribute name="activeUsersList" type="List" default="[]"/>
+    
+    <aura:attribute name="dormantUsersList" type="List" default="[]"/>
+    <aura:attribute name="hideDeactivateMain" type="boolean" default="true"/>
+    <aura:attribute name="isClickDormantUsers" type="boolean" default="false"/>
+    <aura:attribute name="isClickActiveUsers" type="boolean" default="false"/>
+    <aura:attribute name="showRelatedList" type="boolean" default="false"/>
+    <aura:attribute name="relatedRecordsColumns" type="List" default="[]"/>
+    <aura:attribute name="dormantUsresColumns" type="List" default="[
+                                                                    {label: 'First Name', fieldName: 'FirstName', type: 'text'},
+                                                                    {label: 'Last Name', fieldName: 'LastName', type: 'text'},
+                                                                    {label: 'Email', fieldName: 'Email', type: 'text'},
+                                                                    {label: 'Last Logged In', fieldName: 'LastLoginDate' , type: 'text'},
+                                                                    {label: 'Status', fieldName: 'IsActive', type: 'text'},
+                                                                    {label: 'Inactive Days', fieldName: 'InactiveDays__c', type: 'Number'},
+                                                                    ]"/>
+    <aura:attribute name="activeUsersColumns" type="List" default="[
+                                                                  {label: 'First Name', fieldName: 'FirstName', type: 'text'},
+                                                                  {label: 'Last Name', fieldName: 'LastName', type: 'text'},
+                                                                  {label: 'Email', fieldName: 'Email', type: 'text'},
+                                                                  {label: 'Last Logged In', fieldName: 'LastLoginDate' , type: 'text'},
+                                                                  {label: 'Status', fieldName: 'IsActive', type: 'text'},
+                                                                  ]"/>    
+
+    <aura:attribute name="disableNext" type="Integer" default="0"/>
+    <aura:attribute name="selectedDormantUsers" type="List" default="[]"/>
+    <aura:attribute name="dormantPreviousLength" type="Integer" default="0"/>
+    
+    	<!--		ATTRIBUTES FOR CHANGING RECORDS OWNERSHIP BULK		-->
+    
+    <aura:attribute name="usersWithRelatedRecords" type="List" default="[]"/>
+    <aura:attribute name="currentKeyIndex" type="Integer" default="0"/>
+    <aura:attribute name="keysList" type="List" default="[]"/>
+    <aura:attribute name="currentUserRelated" type="List" default="[]"/>
+    <aura:attribute name="ownerBulk" type="Id" default=""/>
+    <aura:attribute name="bulkOnwerChangeBox" type="boolean" default="true"/>
+    <aura:attribute name="bulkOwnerChangeConfirm" type="boolean" default="false"/>
+    
+    
+    	<!--		Attributes for changing the ownership INDIVIDUALLY	-->
+    
+    <aura:attribute name="individualCheckBox" type="Boolean" default="false"/>
+	<aura:attribute name="individualChangeBox" type="Boolean" default="false"/>    
+    <aura:attribute name="rowActionVar" type="List" default="[]"/>
+    <aura:attribute name="newOwnerId" type="Id"/>
+    
+    
+    <aura:attribute name="pageNumber" type="Integer" default="1"/>
+    <aura:attribute name="pageNumbers" type="List" default="[1]"/>
+    <aura:attribute name="pageSize" type="Integer" default="10"/>
+    <aura:attribute name="totalPages" type="Integer"/>
+    <aura:attribute name="paginatedActiveUsers" type="List" default="[]"/>
+    <lightning:notificationsLibrary aura:id="notifLib"/>
+    
+    <aura:attribute name="globalSpinner" type="boolean" default="true"/>
+    <aura:attribute name="mediumSpinner" type="boolean" default="false"/>
+    
+    <aura:attribute name="suggestionBox" type="boolean" default="false"/>
+    <aura:attribute name="suggestionBoxData" type="List" default="[]"/>
+    <aura:attribute name="suggestionBoxColumns" type="List" default="[]"/>
+    
+    <aura:if isTrue="{!v.globalSpinner}">
+        <lightning:spinner alternativeText="Loading" size="large"/>
+        <aura:set attribute="else">
+            <lightning:card>
+                <div class="slds-p-around_xx-large">
+                    <h1 slot="title" style="font-size: 2em;" class="slds-align_absolute-center">User Access and Permission Assistant</h1>
+                </div>
+                <aura:if isTrue="{!v.homePage}">
+                    <div class="slds-grid slds-gutters slds-text-align_center">
+                        <div class="slds-col">
+                            <lightning:button iconName="utility:adduser" variant="brand" label="New User" title="New User" onclick="{!c.onClickNewUserButton}"/>
+                        </div>
+                        <div class="slds-col">
+                            <lightning:button iconName="utility:copy" variant="brand" label="Clone User" title="Clone User" onclick="{!c.onClickCloneUserButton}"/>
+                        </div>
+                        <div class="slds-col">
+                            <lightning:button iconName="utility:user" variant="brand" label="Deactivate User" title="Deactivate User" onclick="{!c.onClickDeactivateUserButton}"/>
+                        </div>
+                    </div>
+                    <lightning:card title="User Licenses" class="slds-p-horizontal_medium">
+                        <div class="slds-p-horizontal_medium slds-box slds-box_x-small" style="height: 290px">
+                            <lightning:datatable data="{!v.licenceListData}" columns="{!v.columnForLicenseList}" keyField="id" hideCheckboxColumn="true"/>
+                        </div>
+                    </lightning:card>
+                    <aura:set attribute="else">
+                        <div class="slds-float_right slds-p-around_medium">
+                            <lightning:button variant="Brand" label="Back" onclick="{!c.backToHome}"/>
+                        </div>
+                    </aura:set>
+                </aura:if>
+                
+                
+                <!---		NEW USER PAGE		-->
+                
+                <aura:if isTrue="{!v.newUsersPage}">
+                    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-describedby="modal-content-id-1" aria-modal="true" class="slds-modal slds-fade-in-open blur-background"> 
+                        <div class="slds-modal__container">              
+                            <lightning:buttonicon iconName="utility:close" onclick="{!c.closeModal}" alternativetext="close" variant="bare-inverse" class="slds-modal__close"/>
+                            <header class="slds-modal__header">
+                                <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate" >Create User</h2>
+                            </header>
+                            <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                <lightning:recordEditForm  aura:id="recordEditform" objectApiName="User" onsubmit="{!c.submitDetails}" onsuccess="{!c.handleSuccess}" onerror="{!c.handleError}">
+                                    <span class="slds-truncate" title="General Information">General Information</span> 
+                                    <div class="slds-grid slds-wrap">                 
+                                        <div class="slds-col">
+                                            <div>
+                                                <span></span>{!$Label.c.FirstName}
+                                                <lightning:inputField fieldName="FirstName" aura:id="name" variant="label-hidden" value="{!v.FirstName}"></lightning:inputField>
+                                            </div>
+                                            <div>
+                                                <span class="slds-required">*</span>{!$Label.c.Email}
+                                                <lightning:inputField fieldName="Email" aura:id="Email" variant="label-hidden"></lightning:inputField>
+                                            </div>
+                                            <span class="slds-required">*</span>{!$Label.c.Alias} 
+                                            <div onclick="{!c.getAlias }">
+                                                <lightning:inputField fieldName="Alias" aura:id="Alias" variant="label-hidden" value="{!v.Alias}"></lightning:inputField>
+                                            </div>
+                                            <span class="slds-required"></span>{!$Label.c.Role}
+                                            <lightning:inputField fieldName="UserRoleId" aura:id="UserRoleId" variant="label-hidden"></lightning:inputField>
+                                        </div>
+                                        <div class="slds-col slds-p-horizontal_medium">
+                                            <span class="slds-required">*</span>{!$Label.c.lastName}
+                                            <lightning:inputField fieldName="LastName" aura:id="lastName"  variant="label-hidden" value="{!v.LastName}"></lightning:inputField>
+                                            <span class="slds-required">*</span>{!$Label.c.Username}    
+                                            <lightning:inputField fieldName="Username" aura:id="Username" variant="label-hidden" ></lightning:inputField>
+                                            <span class="slds-required">*</span>{!$Label.c.CommunityNickname}
+                                            <div onclick="{!c.getNick }">
+                                                <lightning:inputField fieldName="CommunityNickname" aura:id="CommunityNickname" required="true" variant="label-hidden" value="{!v.CommunityNickname}"></lightning:inputField>
+                                            </div>
+                                            <span class="slds-required">*</span>{!$Label.c.ProfileId}
+                                            <lightning:inputField fieldName="ProfileId" aura:id="ProfileId"  variant="label-hidden"></lightning:inputField>
+                                            <div class="slds-hidden">
+                                                <lightning:inputField fieldName="EmailEncodingKey" aura:id="EmailEncodingKey" required="true" variant="label-hidden" value="{!v.EmailEncodingKey}"></lightning:inputField>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="slds-col">
+                                            <span class="slds-truncate" title="General Information">Locale Settings</span>
+                                            <div><span class="slds-required">*</span>{!$Label.c.TimeZoneSidKey}</div>
+                                            <lightning:inputField fieldName="TimeZoneSidKey" aura:id="TimeZoneSidKey" required="true" variant="label-hidden"></lightning:inputField>
+                                            <span class="slds-required">*</span>{!$Label.c.LocaleSidKey}   
+                                            <lightning:inputField fieldName="LocaleSidKey" aura:id="LocaleSidKey" required="true" variant="label-hidden"></lightning:inputField>
+                                            <span class="slds-required">*</span>{!$Label.c.LanguageLocaleKey}
+                                            <lightning:inputField fieldName="LanguageLocaleKey" aura:id="LanguageLocaleKey" required="true" variant="label-hidden"></lightning:inputField>
+                                        </div>
+                                    </div>	
+                                </lightning:recordEditForm>
+                            </div>
+                            <footer class="slds-modal__footer">
+                                <lightning:button name="cancel" label="Cancel" onclick="{!c.closeModal}" class="slds-button slds-float_left"/>    
+                                <lightning:button type="submit" name="save" label="Create" onclick="{!c.submitForm}" class="slds-float_right slds-button slds-button_brand "/>
+                            </footer>
+                        </div>
+                    </section>
+                </aura:if>
+                
+                <!-- 		CLONE USER PAGE 		-->
+                
+                <aura:if isTrue="{!v.cloneUsersPage}">
+                    <h1 slot="title" style="font-size: 1.75em;" class="slds-align_absolute-center">Clone User</h1>
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col"></div>
+                        <div class="slds-col">
+                            <lightning:input required="true" placeholder="Enter Email of Existing user for cloning" aura:id="cloneUserSearchField" label="Email" type="Email"/> 
+                        </div>
+                        <div class="slds-col  slds-p-top_xx-small ">
+                            <br/>
+                            <lightning:button variant="brand" label="Search" iconName="utility:search" class="slds-float_left slds-button slds-button_brand" onclick="{!c.searchExistingUser}"/>
+                        </div>
+                    </div>
+                    <aura:if isTrue="{!v.hasRecord}">
+                        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-describedby="modal-content-id-1" aria-modal="true" class="slds-modal slds-fade-in-open blur-background">
+                            <div class="slds-modal__container">              
+                                <lightning:buttonicon iconName="utility:close" onclick="{!c.closeModalCloneUser}"
+                                                      alternativetext="close" variant="bare-inverse" class="slds-modal__close"/>
+                                <header class="slds-modal__header">
+                                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Clone User</h2>
+                                </header>
+                                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                    
+                                    <span class="slds-truncate" title="General Information">General Information</span>
+                                    <br/>
+                                    <div class="slds-grid slds-wrap">                 
+                                        <div class="slds-col">
+                                            <lightning:input label="FirstName" aura:id="name" value="{!v.FirstName}"></lightning:input>
+                                            <lightning:input label="Email" aura:id="Email" required="true" value="{!v.Email}"></lightning:input>
+                                            <lightning:input onclick="{!c.getNick}" label="Nickname" aura:id="CommunityNickname" required="true" value="{!v.CommunityNickname}" ></lightning:input>
+                                        </div>
+                                        <div class="slds-col slds-p-horizontal_medium">
+                                            <lightning:input label="LastName" aura:id="lastName" required="true" value="{!v.LastName}"></lightning:input>
+                                            <lightning:input label="Username" aura:id="Username" required="true" value="{!v.Username}"></lightning:input>
+                                            <lightning:input onclick="{!c.getAlias}" label="Alias" aura:id="Alias" required="true" value="{!v.Alias}"></lightning:input>
+                                            <lightning:input value="{!v.Profilename}" label="Profile" disabled="true" ></lightning:input>
+                                        </div>
+                                    </div>
+                                </div>
+                                <footer class="slds-modal__footer">
+                                    <lightning:button  name="CloneUser" label="Clone User"  onclick="{!c.cloneUserButton}" class="slds-float_right slds-button slds-button_brand "/>
+                                    <lightning:button name="cancel" label="Cancel" onclick="{!c.closeModalCloneUser}" class="slds-button slds-float_left"/>
+                                </footer>
+                            </div>
+                        </section>
+                    </aura:if>
+                </aura:if>
+                
+                
+                <!--		DEACTIVATE USER PAGE		-->
+                
+                <aura:if isTrue="{!v.deactivateUsersPage}">
+                    <h1 slot="title" style="font-size: 1.75em;" class="slds-align_absolute-center">Deactivate Dormant Users</h1>
+                    <div class="slds-grid slds-gutters">
+                        <div class="slds-col slds-size_1-of-2">
+                            <lightning:select aura:id="notLoggedInOptions" label="Not logged in from" required="true">
+                                <option style="height: 100px;" value="moreThanOne">More than 1 month</option>
+                                <option value="oneToThree">1-3 months</option>
+                                <option value="threeToSix">3-6 months</option>
+                                <option value="sixToNine">6-9 months</option>
+                                <option value="12months">12 months or later</option>
+                            </lightning:select>
+                        </div>
+                        <div class="slds-col slds-align-bottom">
+                            <lightning:button variant="brand" label="search" onclick="{!c.searchByLoggedInMonth}"/>
+                        </div>
+                    </div>
+                    
+                    <!--		PIE CHART FOR ACTIVE VS DORMANT USERS		-->
+                    
+                    <div class="slds-align_absolute-center">
+                        <aura:if isTrue="{!v.isRenderPieChart}">
+                            <ltng:require  scripts="{!join(',',$Resource.ChartJS3, $Resource.ChartJSPluginDataLabels)}" afterScriptsLoaded="{!c.renderChart}"/>
+                            <div class="chart-container">
+                                <canvas aura:id="pieChart"/>
+                            </div>
+                        </aura:if>
+                    </div>
+                    
+                    <!--			DORMANT USERS FUNCTIONALITY				-->
+                    <aura:if isTrue="{!v.isClickDormantUsers}">
+                        <div class="slds-p-around_medium">
+                            <div class="slds-grid slds-grid_align-end">
+                                <div class="slds-col slds-col_bump-right slds-size_1-of-4 slds-grid_vertical-align-center" style="font-size: 20px; font-weight: bold; padding-bottom: 10px; padding-left: 3px;">Dormant Users</div>
+                                <div class="slds-col slds-size_1-of-14">
+                                    <div class="slds-button_container">
+                                        <button class="slds-button slds-button_outline-brand download-button" title="Download details of the Dormant users">
+                                            <lightning:icon iconName="utility:download" alternativeText="Download" size="xx-small"  onclick="{!c.downloadDataDormantUsers}"/>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-box">
+                                <lightning:datatable keyField="Id" data="{!v.dormantUsersList}" columns="{!v.dormantUsresColumns}" onrowselection="{!c.selectedRowsData}" hideCheckboxColumn="false"/>
+                                <div style="padding-top: 16px;">
+                                    <lightning:button label="Deactivate" variant="brand" disabled="{!v.hideDeactivateMain}" onclick="{!c.onClickDeactivateButton}"/>
+                                </div>
+                            </div>
+                        </div>
+                        <aura:if isTrue="{!v.showRelatedList}">
+                            <div class="slds-p-around_medium">
+                                <div class="slds-box">
+                                    <div class="slds-grid slds-gutters">
+                                        <div class="slds-col slds-size_3-of-14 slds-grid_vertical-align-center" style="padding-left: 0px; padding-right: 0px;">
+                                            <lightning:button variant="brand" label="Previous" iconName="utility:chevronleft" disabled="{!v.currentKeyIndex==0}" onclick="{!c.previousRecord}"/>
+                                        </div>
+                                        <div class="slds-col slds-small-size_8-of-14">
+                                            <div class="slds-box" style="overflow-x: auto;">
+                                                <lightning:datatable keyField="id" data="{!v.currentUserRelated}" columns="{!v.relatedRecordsColumns}" hideCheckboxColumn="true" onrowaction="{!c.individualOwnerChangeRowAction}"/>
+                                            </div>
+                                        </div>
+                                        <div class="sdls-col slds-size_3-of-14 slds-grid_vertical-align-center">
+                                            <lightning:button variant="brand" label="Next" iconName="utility:chevronright" iconPosition="right" onclick="{!c.nextRecord}" disabled="{!v.currentKeyIndex==v.disableNext}"/>
+                                        </div>
+                                    </div>
+                                    
+                                    <!--	CHANGE OWNERSHIP BULK		-->
+                                    <div class="slds-grid slds-gutters">
+                                        <div class="slds-col slds-size_1-of-2" style="padding-left: 107.6px;">
+                                            <aura:if isTrue="{!v.bulkOnwerChangeBox}">
+                                                <lightning:recordEditForm objectApiName="User">
+                                                    <lightning:inputField fieldName="OwnerSelectionBulk__c" required="true" style="width: 400px;" value="{!v.ownerBulk}"/>
+                                                    <lightning:button variant="Brand" label="Change Owner" type="submit" onclick="{!c.bulkOwnerChangeCheckBox}"/>
+                                                </lightning:recordEditForm>
+                                                <aura:set attribute="else">
+                                                    <div style="padding-top: 12px;">
+                                                        <lightning:button variant="Brand" label="Deactivate" onclick="{!c.bulkOwnerChangeDeactivate}"/>
+                                                    </div>
+                                                </aura:set>
+                                            </aura:if>
+                                        </div>
+                                    </div>
+                                </div>
+                                <aura:if isTrue="{!v.bulkOwnerChangeConfirm}">
+                                    <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-describedby="modal-content-id-1" aria-modal="true" class="slds-modal slds-fade-in-open blur-background">
+                                        <div class="slds-modal__container">
+                                            <header class="slds-modal__header">
+                                                <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Change Owner</h2>
+                                            </header>
+                                            <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                                <span>Are you sure you want to change the record owner?</span>
+                                                <br/>
+                                            </div>
+                                            <footer class="slds-modal__footer">
+                                                <lightning:button  name="Yes" label="Yes"  onclick="{!c.handleBulkOwnerChange}" class="slds-button slds-float_right slds-button_brand" />
+                                                <lightning:button name="No" label="No" onclick="{!c.closeBulkOwnerChange}" class="slds-button slds-float_left"/>
+                                            </footer>
+                                        </div>
+                                    </section>
+                                </aura:if>
+                            </div>
+                        </aura:if>
+                    </aura:if>            
+                    <!--		CHANGE OWNERSHIP INDIVIDUALLY		-->
+                    
+                    <aura:if isTrue="{!v.individualChangeBox}">
+                        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-describedby="modal-content-id-1" aria-modal="true" class="slds-modal slds-fade-in-open blur-background">
+                            <div class="slds-modal__container">
+                                <lightning:buttonicon iconName="utility:close" onclick="{!c.closeModalEachChange}" alternativetext="close" variant="bare-inverse" class="slds-modal__close"/>
+                                <header class="slds-modal__header">
+                                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Change Owner</h2>
+                                </header>
+                                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                    <div>
+                                        <lightning:button label="Suggested Users of same R and R" title="Suggestion" onclick="{!c.getSuggestion}"/>
+                                    </div>
+                                    <div>
+                                        <lightning:recordEditForm objectApiName="User">
+                                            <lightning:inputField aura:id="ownerNameIndividual" fieldName="OwnerSelectionIndividual__c" required="true"/>
+                                        </lightning:recordEditForm>
+                                    </div>
+                                </div>
+                                <footer class="slds-modal__footer">
+                                    <lightning:button variant="Brand" label="Cancel" onclick="{!c.closeModalEachChange}"/>
+                                    <div class="slds-float_left">
+                                        <lightning:button variant="Brand" label="Change Owner" type="submit" onclick="{!c.individualOwnerChangeCheck}"/>
+                                    </div>
+                                </footer>
+                            </div>
+                        </section>
+                    </aura:if>
+                    
+                    <aura:if isTrue="{!v.suggestionBox}">
+                        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-describedby="modal-content-id-1" aria-modal="true" class="slds-modal slds-fade-in-open blur-background">
+                            <div class="slds-modal__container">              
+                                <lightning:buttonicon iconName="utility:close" onclick="{!c.closeSuggestionBox}"
+                                                      alternativetext="close" variant="bare-inverse" class="slds-modal__close"/>
+                                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                    <lightning:datatable data="{!v.suggestionBoxData}" 
+                                                         columns="{!v.suggestionBoxColumns}" 
+                                                         keyField="id" 
+                                                         hideCheckboxColumn="true" 
+                                                         onrowaction="{!c.suggestionBoxRowAction}" />
+                                </div>
+                            </div>
+                        </section>
+                    </aura:if>
+                    <aura:if isTrue="{!v.individualCheckBox}">
+                        <section role="dialog" tabindex="-1" aria-labelledby="modal-heading-01" aria-describedby="modal-content-id-1" aria-modal="true" class="slds-modal slds-fade-in-open blur-background">
+                            <div class="slds-modal__container">
+                                <lightning:buttonicon iconName="utility:close" onclick="{!c.closeModalEachChange}" alternativetext="close" variant="bare-inverse" class="slds-modal__close"/>
+                                <header class="slds-modal__header">
+                                    <h2 id="modal-heading-01" class="slds-text-heading_medium slds-hyphenate">Change Owner</h2>
+                                </header>
+                                <div class="slds-modal__content slds-p-around_medium" id="modal-content-id-1">
+                                    <span>Are you sure you want to change the record owner?</span>
+                                    <br/>
+                                </div>
+                                <footer class="slds-modal__footer">
+                                    <lightning:button  name="Yes" label="Yes"  onclick="{!c.individualOwnerChangeYes}" class="slds-button slds-float_right slds-button_brand" />
+                                    <lightning:button name="No" label="No" onclick="{!c.closeModalEachChange}" class="slds-button slds-float_left"/>
+                                </footer>
+                            </div>
+                        </section>
+                    </aura:if>
+                    
+                    <aura:if isTrue="{!v.isClickActiveUsers}">
+                        <div class="slds-p-around_medium">
+                            <div class="slds-grid slds-grid_align-end">
+                                <div class="slds-col slds-col_bump-right slds-size_1-of-4 slds-grid_vertical-align-center" style="font-size: 20px; font-weight: bold; padding-bottom: 10px; padding-left: 3px;">Active Users</div>
+                                <div class="slds-col slds-size_1-of-14">
+                                    <div class="slds-button_container">
+                                        <button class="slds-button slds-button_outline-brand download-button" title="Download details of the Active users">
+                                            <lightning:icon iconName="utility:download" alternativeText="Download" size="xx-small"  onclick="{!c.downloadDataActiveUsers}"/>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="slds-col slds-size_1-of-7 slds-grid_vertical-align-center slds-text-align_center">
+                                    <span class="displayedRecordsPerPage">Displayed records per page</span>
+                                </div>
+                                <div class="slds-col slds-size_1-of-14">
+                                    <div style="width: 53px;">
+                                        <lightning:select aura:id="recordsPerPage" name="pageSize" onchange="{!c.handleChangeRecordSize}" class="label-hidden">
+                                            <option value="10">10</option>
+                                            <option value="20">20</option>
+                                            <option value="30">30</option>
+                                        </lightning:select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="slds-box">
+                                <lightning:datatable keyField="id" data="{!v.paginatedActiveUsers}" columns="{!v.activeUsersColumns}" hideCheckboxColumn="true"/>
+                            </div>
+                            <div class="slds-p-around_small slds-text-align_center">
+                                <lightning:button label="Previous" iconName="utility:chevronleft" onclick="{!c.previousPage}" disabled="{!v.pageNumber == 1}" variant="brand"/>
+                                <span class="slds-p-around_small slds-badge slds-badge_lightest" style="margin-right: 10px; margin-left: 10px;">Page {!v.pageNumber} out of {!v.totalPages}</span>
+                                <lightning:button label="Next" iconName="utility:chevronright" iconPosition="right" onclick="{!c.nextPage}" disabled="{!v.pageNumber == v.totalPages}" variant="brand"/>
+                            </div>
+                        </div>
+                    </aura:if>
+                </aura:if>
+            </lightning:card>
+        </aura:set>
+    </aura:if>
+</aura:component>
